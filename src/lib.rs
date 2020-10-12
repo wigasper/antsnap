@@ -1,5 +1,6 @@
 pub mod config;
 pub mod algo;
+pub mod utils;
 
 #[cfg(test)]
 mod tests {
