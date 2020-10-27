@@ -50,9 +50,13 @@ pub fn transfer_prob(i: &SNP, j: &SNP, pheromones: &Matrix,
 
 pub fn get_max(slice: &[f64]) -> f64 {
     let mut max: &f64 = slice.get(0).unwrap();
-    
+   
+    // TODO: there is an early exit here, might see if this
+    // actually is beneficial
     for val in slice.iter() {
-        if val > max {
+        if (max - 1.0).abs() < FP_EQUALITY_THRESH {
+            break;
+        } else if val > max {
             max = val;
         }
     }
@@ -71,7 +75,7 @@ pub fn expand_path(current_path: &mut Vec<SNP>, pheromones: &Matrix,
 }
 
 // add the next SNP to the path
-pub fn add_to_path(current_path: &mut Vec<SNP>, //snps: &Vec<SNP>, 
+pub fn add_to_path(current_path: &mut Vec<SNP>, 
                    pheromones: &Matrix, 
                    threshold: f64,
                    rng: &mut ThreadRng) {
@@ -85,69 +89,26 @@ pub fn add_to_path(current_path: &mut Vec<SNP>, //snps: &Vec<SNP>,
             probs.push(transfer_prob(i, &snp, pheromones, current_path, rng, threshold));
         }
     }
-
-
-    //////////////////
-    let unvisited_neighbors: Vec<SNP> = (0..pheromones.1).filter(|snp| {
-        !current_path.contains(snp) && snp != i
-    }).collect();
-
-    // wtf
-    //let probs: Vec<f64> = unvisited_neighbors.iter().map(|j| {
-    //    transfer_prob(i, j, pheromones, current_path, rng, threshold);
-    //}).collect();
-
-    //let mut probs: Vec<f64> = Vec::new();
-
-    //for neighbor in unvisited_neighbors.iter() {
-    //    probs.push(transfer_prob(i, neighbor, pheromones, current_path, rng, threshold));
-   // }
-
+    
+ 
     let max_prob = get_max(&probs);
     
-    let mut snps_at_max: Vec<&SNP> = Vec::new();
+    let mut snps_at_max: Vec<SNP> = Vec::new();
 
     for (idx, prob) in probs.iter().enumerate() {
         if (prob - max_prob).abs() < FP_EQUALITY_THRESH {
-            snps_at_max.push(unvisited_neighbors.get(idx).unwrap());
+            snps_at_max.push(idx);
         }
     }
     
-    current_path.push(snps_at_max.choose(rng).unwrap().to_owned().to_owned());
-    /*
-    let mut putative_snp: SNP = snps.choose(mut rng);
-
-    while current_path.contains(putative_snp) {
-        putative_snp = snps.choose(mut rng);
-    }
-
-    let q: f64 = rng.gen();
-    
-    let mut threshold: f64 = 0.8;
-
-    if let Some(t_0) = &params.algo.t_0 {
-        threshold = t_0;
-    }
-
-    if q > threshold {
-        current_path.push(putative_snp);
-    } else {
-        
-    }*/
+    current_path.push(snps_at_max.choose(rng).unwrap().to_owned());
 }
 
-pub fn init(num_ants: usize, num_snps: usize, 
-            epis_dim: usize) -> (Matrix, Vec<Vec<SNP>>) {
-    let mut matrix_out: Matrix = (Vec::new(), num_snps);
+pub fn init_ants(num_ants: usize, num_snps: usize, 
+            epis_dim: usize) -> Vec<Vec<SNP>> {
     let mut paths_out: Vec<Vec<SNP>> = Vec::with_capacity(epis_dim);
 
     let mut rng = rand::thread_rng();
-
-    for _ in (0..num_snps) {
-        for _ in (0..num_snps) {
-            matrix_out.0.push(1.0);
-        }
-    }
     
     for _ in (0..num_ants) {
         let num: usize = rng.gen_range(0, num_snps);
@@ -156,5 +117,17 @@ pub fn init(num_ants: usize, num_snps: usize,
     }
 
 
-    (matrix_out, paths_out)
+    paths_out
+}
+
+pub fn init_pheromones(num_snps: usize) -> Matrix {
+    let mut matrix_out: Matrix = (Vec::new(), num_snps);
+
+    for _ in (0..num_snps) {
+        for _ in (0..num_snps) {
+            matrix_out.0.push(1.0);
+        }
+    }
+    
+    matrix_out
 }

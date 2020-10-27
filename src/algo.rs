@@ -24,17 +24,31 @@ pub fn aco(params: &Config) {
     if let Some(t_0) = &params.algo.t_0 {
         threshold = t_0.to_owned();
     }
-
-    // give each ant its first snp
-    let (mut pheromones, mut paths) = init(num_ants, num_snps, epis_dim);
     
+    let num_iters: usize = 100;
+    
+    // init pheromones matrix
+    let mut pheromones = init_pheromones(num_snps);
+    
+    // give each ant its first snp
+    let mut paths = init_ants(num_ants, num_snps, epis_dim);
 
-    // for each ant
-    paths.par_iter().map(|p| {
-        expand_path(p, &pheromones, epis_dim, threshold);
-    });
+    for _ in (0..num_iters) {
+        // give each ant its first snp
+        let mut paths = init_ants(num_ants, num_snps, epis_dim);
+        
 
+        // for each ant
+        paths.par_iter_mut().map(|p| {
+            expand_path(p, &pheromones, epis_dim, threshold);
+        });
 
-    // use .par_iter() for rayon
-        // select SNPs until desired dim
+        // evaluate solutions
+        //
+        // update pheromones
+        
+        // use .par_iter() for rayon
+            // select SNPs until desired dim
+
+    }
 }
