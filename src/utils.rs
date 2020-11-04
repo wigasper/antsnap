@@ -1,5 +1,8 @@
 use crate::config::*;
 
+use std::fs::File;
+use std::io::prelude::*;
+
 use rand::prelude::*;
 use rand::seq::SliceRandom;
 
@@ -220,4 +223,41 @@ pub fn column_subset(m: &Matrix, cols: &Vec<usize>) -> Matrix {
     }
 
     transpose(&m_out_T)
+}
+
+pub fn load_data(fp: &String) -> (Matrix, Matrix) {
+    let mut file = File::open(fp).unwrap();
+    let mut str_in = String::new();
+
+    file.read_to_string(&mut str_in).unwrap_or_else(|why| {
+        panic!("Could not read data in: {}", why);
+    });
+
+    let mut x: Matrix = (Vec::new(), 0);
+    let mut y: Matrix = (Vec::new(), 1);
+
+    for line in str_in.split("\n") {
+        if line.len() > 0 {
+            let mut vals: Vec<&str> = line.split(",").collect();
+            
+            // check dim
+            if x.1 == 0 {
+                x.1 = vals.len() - 1;
+            }
+            
+            let y_val = vals.pop().unwrap();
+
+            y.0.push(y_val.parse::<f64>().unwrap_or_else(|why| {
+                panic!("Could not parse {} to f64: {}", y_val, why);
+            }));
+            
+            for val in vals.iter() {
+                x.0.push(val.parse::<f64>().unwrap_or_else(|why| {
+                    panic!("Could not parse {} to f64: {}", y_val, why);
+                }));
+            }
+        }
+    }
+
+    (x, y)
 }

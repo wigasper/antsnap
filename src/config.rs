@@ -19,6 +19,7 @@ pub struct AlgoParams {
     pub epis_dim: Option<usize>,
     pub num_ants: Option<usize>,
     pub max_iters: Option<usize>,
+    pub data_fp: String,
 }
 
 #[derive(Deserialize)]
@@ -57,7 +58,7 @@ pub fn get_default_config() -> Config {
     epis_dim = 5
     num_ants = 2000
     max_iters = 20
-
+    data_fp = data/data
     "#,
     )
     .unwrap();
