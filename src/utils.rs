@@ -1,4 +1,3 @@
-
 use crate::config::*;
 
 use rand::prelude::*;
@@ -10,17 +9,15 @@ type Matrix = (Vec<Element>, usize);
 
 const FP_EQUALITY_THRESH: f64 = 0.001;
 
-pub fn get_r(i: &SNP, j: &SNP, pheromones: &Matrix, 
-             current_path: &Vec<SNP>) -> f64 {
-    
+pub fn get_r(i: &SNP, j: &SNP, pheromones: &Matrix, current_path: &Vec<SNP>) -> f64 {
     // TODO: if things are slow this memory allocation could easily be
     // removed. leaving for readability now
-    let unvisited_neighbors: Vec<SNP> = (0..pheromones.1).filter(|n| {
-        !current_path.contains(n) && n != i
-    }).collect();
+    let unvisited_neighbors: Vec<SNP> = (0..pheromones.1)
+        .filter(|n| !current_path.contains(n) && n != i)
+        .collect();
 
     let row_start_idx: usize = i * pheromones.1;
-    
+
     let mut rolling_sum: f64 = 0.0;
 
     for neigh in unvisited_neighbors.iter() {
@@ -32,9 +29,14 @@ pub fn get_r(i: &SNP, j: &SNP, pheromones: &Matrix,
     tau_ij / rolling_sum
 }
 
-pub fn transfer_prob(i: &SNP, j: &SNP, pheromones: &Matrix,
-                     current_path: &Vec<SNP>,
-                   rng: &mut ThreadRng, threshold: f64) -> f64 {
+pub fn transfer_prob(
+    i: &SNP,
+    j: &SNP,
+    pheromones: &Matrix,
+    current_path: &Vec<SNP>,
+    rng: &mut ThreadRng,
+    threshold: f64,
+) -> f64 {
     let mut prob_out: f64 = 0.0;
 
     let q: f64 = rng.gen();
@@ -50,7 +52,7 @@ pub fn transfer_prob(i: &SNP, j: &SNP, pheromones: &Matrix,
 
 pub fn get_max(slice: &[f64]) -> f64 {
     let mut max: &f64 = slice.get(0).unwrap();
-   
+
     // TODO: there is an early exit here, might see if this
     // actually is beneficial
     for val in slice.iter() {
@@ -64,9 +66,13 @@ pub fn get_max(slice: &[f64]) -> f64 {
     max.to_owned()
 }
 
-pub fn expand_path(current_path: &mut Vec<SNP>, pheromones: &Matrix,
-                   epis_dim: usize, threshold: f64) { 
-                   //params: &Config) {
+pub fn expand_path(
+    current_path: &mut Vec<SNP>,
+    pheromones: &Matrix,
+    epis_dim: usize,
+    threshold: f64,
+) {
+    //params: &Config) {
     let mut rng = rand::thread_rng();
 
     while current_path.len() < epis_dim {
@@ -75,24 +81,31 @@ pub fn expand_path(current_path: &mut Vec<SNP>, pheromones: &Matrix,
 }
 
 // add the next SNP to the path
-pub fn add_to_path(current_path: &mut Vec<SNP>, 
-                   pheromones: &Matrix, 
-                   threshold: f64,
-                   rng: &mut ThreadRng) {
-
+pub fn add_to_path(
+    current_path: &mut Vec<SNP>,
+    pheromones: &Matrix,
+    threshold: f64,
+    rng: &mut ThreadRng,
+) {
     let i: &SNP = current_path.last().unwrap();
-    
+
     let mut probs: Vec<f64> = Vec::new();
 
     for snp in (0..pheromones.1) {
         if !current_path.contains(&snp) {
-            probs.push(transfer_prob(i, &snp, pheromones, current_path, rng, threshold));
+            probs.push(transfer_prob(
+                i,
+                &snp,
+                pheromones,
+                current_path,
+                rng,
+                threshold,
+            ));
         }
     }
-    
- 
+
     let max_prob = get_max(&probs);
-    
+
     let mut snps_at_max: Vec<SNP> = Vec::new();
 
     for (idx, prob) in probs.iter().enumerate() {
@@ -100,22 +113,20 @@ pub fn add_to_path(current_path: &mut Vec<SNP>,
             snps_at_max.push(idx);
         }
     }
-    
+
     current_path.push(snps_at_max.choose(rng).unwrap().to_owned());
 }
 
-pub fn init_ants(num_ants: usize, num_snps: usize, 
-            epis_dim: usize) -> Vec<Vec<SNP>> {
+pub fn init_ants(num_ants: usize, num_snps: usize, epis_dim: usize) -> Vec<Vec<SNP>> {
     let mut paths_out: Vec<Vec<SNP>> = Vec::with_capacity(epis_dim);
 
     let mut rng = rand::thread_rng();
-    
+
     for _ in (0..num_ants) {
         let num: usize = rng.gen_range(0, num_snps);
         let path = vec![num];
         paths_out.push(path);
     }
-
 
     paths_out
 }
@@ -128,7 +139,7 @@ pub fn init_pheromones(num_snps: usize) -> Matrix {
             matrix_out.0.push(1.0);
         }
     }
-    
+
     matrix_out
 }
 
@@ -136,7 +147,7 @@ pub fn init_pheromones(num_snps: usize) -> Matrix {
 // returns a m x 1 matrix
 pub fn get_column(m: &Matrix, j: usize) -> Matrix {
     let mut m_out: Matrix = (Vec::new(), 1);
-    
+
     let n_rows: usize = m.0.len() / m.1;
 
     for row in 0..n_rows {
@@ -147,7 +158,7 @@ pub fn get_column(m: &Matrix, j: usize) -> Matrix {
 }
 
 // append b columns to a
-pub fn append_columns (a: &Matrix, b: &Matrix) -> Matrix {
+pub fn append_columns(a: &Matrix, b: &Matrix) -> Matrix {
     let a_n_rows: usize = a.0.len() / a.1;
     let b_n_rows: usize = b.0.len() / b.1;
 
@@ -174,7 +185,7 @@ pub fn append_columns (a: &Matrix, b: &Matrix) -> Matrix {
 
 pub fn transpose(m: &Matrix) -> Matrix {
     let mut m_out: Matrix = (Vec::new(), m.0.len() / m.1);
-    
+
     for col in 0..m.1 {
         for row in 0..(m.0.len() / m.1) {
             m_out.0.push(m.0.get(row * m.1 + col).unwrap().to_owned());
@@ -182,4 +193,31 @@ pub fn transpose(m: &Matrix) -> Matrix {
     }
 
     m_out
+}
+
+pub fn append_rows(a: &mut Matrix, b: &Matrix) {
+    if a.1 != b.1 {
+        panic!("utils::append_rows - matrices do not have same dims");
+    }
+
+    for val in b.0.iter() {
+        a.0.push(val.to_owned());
+    }
+}
+
+// TODO: better way to do this, probably:
+//      each needed column is added in a row, this si super easy just w/ vals
+//      then transpose at the end
+pub fn column_subset(m: &Matrix, cols: &Vec<usize>) -> Matrix {
+    let init_vals: Vec<Element> = get_column(m, cols.first().unwrap().to_owned()).0;
+    let mut m_out_T: Matrix = (init_vals, m.0.len() / m.1);
+
+    for idx in 1..cols.len() {
+        let mut this_col = get_column(m, cols.get(idx).unwrap().to_owned());
+        // modify dim, transposing the col:
+        this_col.1 = this_col.0.len();
+        append_rows(&mut m_out_T, &this_col);
+    }
+
+    transpose(&m_out_T)
 }
