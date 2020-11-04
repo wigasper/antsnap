@@ -131,3 +131,55 @@ pub fn init_pheromones(num_snps: usize) -> Matrix {
     
     matrix_out
 }
+
+//type Matrix = (Vec<Element>, usize);
+// returns a m x 1 matrix
+pub fn get_column(m: &Matrix, j: usize) -> Matrix {
+    let mut m_out: Matrix = (Vec::new(), 1);
+    
+    let n_rows: usize = m.0.len() / m.1;
+
+    for row in 0..n_rows {
+        m_out.0.push(m.0.get(row * m.1 + j).unwrap().to_owned());
+    }
+
+    m_out
+}
+
+// append b columns to a
+pub fn append_columns (a: &Matrix, b: &Matrix) -> Matrix {
+    let a_n_rows: usize = a.0.len() / a.1;
+    let b_n_rows: usize = b.0.len() / b.1;
+
+    if a_n_rows != b_n_rows {
+        panic!("utils::append_columns - matrices do not have same number of rows!");
+    }
+
+    let mut m_out: Matrix = (Vec::new(), a.1 + b.1);
+
+    for row in 0..a_n_rows {
+        let a_start_idx: usize = row * a.1;
+        for a_idx in a_start_idx..(row * a.1 + a.1) {
+            m_out.0.push(a.0.get(a_idx).unwrap().to_owned());
+        }
+
+        let b_start_idx: usize = row * b.1;
+        for b_idx in b_start_idx..(row * b.1 + b.1) {
+            m_out.0.push(b.0.get(b_idx).unwrap().to_owned());
+        }
+    }
+
+    m_out
+}
+
+pub fn transpose(m: &Matrix) -> Matrix {
+    let mut m_out: Matrix = (Vec::new(), m.0.len() / m.1);
+    
+    for col in 0..m.1 {
+        for row in 0..(m.0.len() / m.1) {
+            m_out.0.push(m.0.get(row * m.1 + col).unwrap().to_owned());
+        }
+    }
+
+    m_out
+}
