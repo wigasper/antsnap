@@ -239,25 +239,60 @@ pub fn load_data(fp: &String) -> (Matrix, Matrix) {
     for line in str_in.split("\n") {
         if line.len() > 0 {
             let mut vals: Vec<&str> = line.split(",").collect();
-            
+
             // check dim
             if x.1 == 0 {
                 x.1 = vals.len() - 1;
             }
-            
+
             let y_val = vals.pop().unwrap();
 
             y.0.push(y_val.parse::<f64>().unwrap_or_else(|why| {
                 panic!("Could not parse {} to f64: {}", y_val, why);
             }));
-            
+
             for val in vals.iter() {
                 x.0.push(val.parse::<f64>().unwrap_or_else(|why| {
-                    panic!("Could not parse {} to f64: {}", y_val, why);
+                    panic!("Could not parse {} to f64: {}", val, why);
                 }));
             }
         }
     }
 
     (x, y)
+}
+
+pub fn update_single_pheromone(
+    pheromones: &mut Matrix,
+    idx: usize,
+    evap_coeff: &f64,
+    lambda: &f64,
+    good_solution: bool,
+) {
+    if let Some(val) = pheromones.0.get_mut(idx) {
+        if good_solution {
+            *val = (1.0 - evap_coeff) * *val + evap_coeff * lambda;
+        } else {
+            *val = (1.0 - evap_coeff) * *val;
+        }
+    }
+}
+
+pub fn update_pheromones(
+    pheromones: &mut Matrix,
+    path: &Vec<SNP>,
+    evap_coeff: &f64,
+    lambda: &f64,
+    good_solution: bool,
+) {
+    for source_idx in 0..path.len() - 1 {
+        let source: SNP = path.get(source_idx).unwrap().to_owned();
+        let sink: SNP = path.get(source_idx + 1).unwrap().to_owned();
+
+        let pher_idx_0: usize = source * pheromones.1 + sink;
+        let pher_idx_1: usize = sink * pheromones.1 + source;
+
+        update_single_pheromone(pheromones, pher_idx_0, evap_coeff, lambda, good_solution);
+        update_single_pheromone(pheromones, pher_idx_1, evap_coeff, lambda, good_solution);
+    }
 }

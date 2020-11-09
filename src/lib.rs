@@ -53,20 +53,23 @@ mod tests {
     fn get_default_config_0() {
         let cfg = get_default_config();
 
-        println!("{:?}", cfg.algo.init_pheromone_val);
-        let evap_coeff_expected: f64 = 0.8;
+        let evap_coeff_expected: f64 = 0.1;
         assert_eq!(cfg.algo.evap_coeff, Some(evap_coeff_expected));
     }
     #[test]
     fn column_subset_0() {
-        let a_vals = vec![1.2, 2.3, 3.4, 4.5, 5.6, 6.7];
+        let a_vals = vec![1.2, 2.3, 3.4, 
+                          4.5, 5.6, 6.7,
+                          1.3, 2.5, 5.8];
         let a: Matrix = (a_vals, 3);
 
         let cols = vec![0, 2];
 
         let b = column_subset(&a, &cols);
 
-        let e_vals = vec![1.2, 3.4, 4.5, 6.7];
+        let e_vals = vec![1.2, 3.4, 
+                          4.5, 6.7,
+                          1.3, 5.8];
         let expected: Matrix = (e_vals, 2);
 
         assert_eq!(b, expected);
