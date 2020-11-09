@@ -56,7 +56,7 @@ pub fn aco(params: &Config) {
     for _ in (0..num_iters) {
         // give each ant its first snp
         let mut paths = init_ants(num_ants, num_snps, epis_dim);
-        
+
         //for path in paths.iter_mut() {
         //    expand_path(path, &pheromones, epis_dim, threshold);
         //}
@@ -66,7 +66,7 @@ pub fn aco(params: &Config) {
         });
 
         let mut losses: Vec<(SNP, f64)> = Vec::new();
-        
+
         let mut path_indices: Vec<usize> = Vec::new();
         for idx in 0..paths.len() {
             path_indices.push(idx);
@@ -78,8 +78,8 @@ pub fn aco(params: &Config) {
         //
         //let path_indices = (0..paths.len()).iter().collect();
         path_indices.par_iter().map(|idx| {
-        // evaluate solutions
-        //for (idx, path) in paths.iter().enumerate() {
+            // evaluate solutions
+            //for (idx, path) in paths.iter().enumerate() {
             //println!("{:?}", path);
             let path = paths.get(idx.to_owned()).unwrap();
             // lol this does not appear to be working

@@ -58,18 +58,14 @@ mod tests {
     }
     #[test]
     fn column_subset_0() {
-        let a_vals = vec![1.2, 2.3, 3.4, 
-                          4.5, 5.6, 6.7,
-                          1.3, 2.5, 5.8];
+        let a_vals = vec![1.2, 2.3, 3.4, 4.5, 5.6, 6.7, 1.3, 2.5, 5.8];
         let a: Matrix = (a_vals, 3);
 
         let cols = vec![0, 2];
 
         let b = column_subset(&a, &cols);
 
-        let e_vals = vec![1.2, 3.4, 
-                          4.5, 6.7,
-                          1.3, 5.8];
+        let e_vals = vec![1.2, 3.4, 4.5, 6.7, 1.3, 5.8];
         let expected: Matrix = (e_vals, 2);
 
         assert_eq!(b, expected);
