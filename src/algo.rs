@@ -1,4 +1,4 @@
-use rayon::prelude::*;
+use rayon::prelude::*; // 1.5.0
 
 use crate::config::*;
 use crate::utils::*;
@@ -13,6 +13,19 @@ const LR_N_ITERS: usize = 500;
 const LR_LEARN_RATE: f64 = 0.1;
 const PROPORTION_TO_SELECT: f64 = 0.15;
 
+
+
+pub fn train_one(idx: &usize, paths: &Vec<Vec<SNP>>, x: &Matrix,
+                       y: &Matrix) -> (usize, f64) {
+    let path = paths.get(idx.to_owned()).unwrap();
+    let subset: Matrix = column_subset(&x, &path);
+
+    let mut model = LogRegressor::new();
+    let loss = model.train(&subset, &y, LR_N_ITERS, LR_LEARN_RATE);
+    
+    (idx.to_owned(), loss)
+    //losses.push((idx.to_owned(), loss));
+}
 pub fn aco(params: &Config) {
     let (x, y) = load_data(&params.algo.data_fp);
 
@@ -61,35 +74,22 @@ pub fn aco(params: &Config) {
         //    expand_path(path, &pheromones, epis_dim, threshold);
         //}
         // for each ant
-        paths.par_iter_mut().map(|p| {
+        //paths.par_iter_mut().map(|p| {
+        //    expand_path(p, &pheromones, epis_dim, threshold);
+        //});
+        paths.par_iter_mut().for_each(|p| {
             expand_path(p, &pheromones, epis_dim, threshold);
         });
 
+        let mut path_indices: Vec<usize> = (0..paths.len()).into_iter().collect();
+
         let mut losses: Vec<(SNP, f64)> = Vec::new();
 
-        let mut path_indices: Vec<usize> = Vec::new();
-        for idx in 0..paths.len() {
-            path_indices.push(idx);
-        }
-
-        // TODO HOW TO MAKE THSI WORK
-        // map this to a fn that returns the loss value
-        // then collect as losses
-        //
-        //let path_indices = (0..paths.len()).iter().collect();
-        path_indices.par_iter().map(|idx| {
-            // evaluate solutions
-            //for (idx, path) in paths.iter().enumerate() {
-            //println!("{:?}", path);
-            let path = paths.get(idx.to_owned()).unwrap();
-            // lol this does not appear to be working
-            let subset: Matrix = column_subset(&x, &path);
-
-            let mut model = LogRegressor::new();
-            let loss = model.train(&subset, &y, LR_N_ITERS, LR_LEARN_RATE);
-
-            losses.push((idx.to_owned(), loss));
+        let par_iter = path_indices.par_iter().map(|idx| {
+            train_one(idx, &paths, &x, &y)
         });
+
+        let mut losses: Vec<(usize, f64)> = par_iter.collect();
 
         // sort losses
         losses.sort_by(|a, b| a.1.partial_cmp(&b.1).unwrap());
@@ -111,6 +111,7 @@ pub fn aco(params: &Config) {
         // select SNPs until desired dim
     }
 }
+
 
 // 10.1159/000085222
 //
