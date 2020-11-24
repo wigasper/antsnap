@@ -52,11 +52,11 @@ pub fn get_default_config() -> Config {
     init_pheromone_val = 1.0
     t_0 = 0.8
     evap_coeff = 0.1
-    epis_dim = 5
-    num_ants = 2000
-    max_iters = 20
+    epis_dim = 3
+    num_ants = 1000
+    max_iters = 40
     lambda = 2.0
-    data_fp = 'data/data'
+    data_fp = 'data/gametes_small'
     "#,
     )
     .unwrap();

@@ -1,4 +1,4 @@
-use crate::config::*;
+//use crate::config::*;
 
 use std::fs::File;
 use std::io::prelude::*;
@@ -125,7 +125,7 @@ pub fn init_ants(num_ants: usize, num_snps: usize, epis_dim: usize) -> Vec<Vec<S
 
     let mut rng = rand::thread_rng();
 
-    for _ in (0..num_ants) {
+    for _ in 0..num_ants {
         let num: usize = rng.gen_range(0, num_snps);
         let path = vec![num];
         paths_out.push(path);
@@ -137,8 +137,8 @@ pub fn init_ants(num_ants: usize, num_snps: usize, epis_dim: usize) -> Vec<Vec<S
 pub fn init_pheromones(num_snps: usize) -> Matrix {
     let mut matrix_out: Matrix = (Vec::new(), num_snps);
 
-    for _ in (0..num_snps) {
-        for _ in (0..num_snps) {
+    for _ in 0..num_snps {
+        for _ in 0..num_snps {
             matrix_out.0.push(1.0);
         }
     }
@@ -225,7 +225,8 @@ pub fn column_subset(m: &Matrix, cols: &Vec<usize>) -> Matrix {
     transpose(&m_out_T)
 }
 
-pub fn load_data(fp: &String) -> (Matrix, Matrix) {
+// final vec<string> in tuple is the header key
+pub fn load_data(fp: &String) -> (Matrix, Matrix, Vec<String>) {
     let mut file = File::open(fp).unwrap();
     let mut str_in = String::new();
 
@@ -235,31 +236,37 @@ pub fn load_data(fp: &String) -> (Matrix, Matrix) {
 
     let mut x: Matrix = (Vec::new(), 0);
     let mut y: Matrix = (Vec::new(), 1);
+    let mut header: Vec<String> = Vec::new();
 
     for line in str_in.split("\n") {
         if line.len() > 0 {
-            let mut vals: Vec<&str> = line.split(",").collect();
+            if line.starts_with("N") {
+                header = line.split_whitespace().map(|s| s.to_owned()).collect();
+            } else {
+                let mut vals: Vec<&str> = line.split_whitespace().collect();
+                //let mut vals: Vec<&str> = line.split(",").collect();
 
-            // check dim
-            if x.1 == 0 {
-                x.1 = vals.len() - 1;
-            }
+                // check dim
+                if x.1 == 0 {
+                    x.1 = vals.len() - 1;
+                }
 
-            let y_val = vals.pop().unwrap();
+                let y_val = vals.pop().unwrap();
 
-            y.0.push(y_val.parse::<f64>().unwrap_or_else(|why| {
-                panic!("Could not parse {} to f64: {}", y_val, why);
-            }));
-
-            for val in vals.iter() {
-                x.0.push(val.parse::<f64>().unwrap_or_else(|why| {
-                    panic!("Could not parse {} to f64: {}", val, why);
+                y.0.push(y_val.parse::<f64>().unwrap_or_else(|why| {
+                    panic!("Could not parse {} to f64: {}", y_val, why);
                 }));
+
+                for val in vals.iter() {
+                    x.0.push(val.parse::<f64>().unwrap_or_else(|why| {
+                        panic!("Could not parse {} to f64: {}", val, why);
+                    }));
+                }
             }
         }
     }
 
-    (x, y)
+    (x, y, header)
 }
 
 pub fn update_single_pheromone(
