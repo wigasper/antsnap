@@ -10,5 +10,6 @@ edition = "2018"
 toml = "0.5"
 serde = { version = "1.0.114", features = ["derive"] }
 rand = "0.7.3"
-rayon = "1.4.1"
-logregressor = { git = "https://github.com/wigasper/logregressor" }
+rayon = "1.5.0"
+logregressor = { git = "https://github.com/wigasper/logregressor", branch = "main" }
+clap = "2.33.1"
