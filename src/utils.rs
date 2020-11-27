@@ -92,11 +92,11 @@ pub fn add_to_path(
 ) {
     let i: &SNP = current_path.last().unwrap();
 
-    let mut probs: Vec<f64> = Vec::new();
+    let mut probs: (Vec<usize>, Vec<f64>) = (Vec::new(), Vec::new());
 
-    for snp in (0..pheromones.1) {
+    for snp in 0..pheromones.1 {
         if !current_path.contains(&snp) {
-            probs.push(transfer_prob(
+            probs.1.push(transfer_prob(
                 i,
                 &snp,
                 pheromones,
@@ -104,16 +104,17 @@ pub fn add_to_path(
                 rng,
                 threshold,
             ));
+            probs.0.push(snp);
         }
     }
 
-    let max_prob = get_max(&probs);
+    let max_prob = get_max(&probs.1);
 
     let mut snps_at_max: Vec<SNP> = Vec::new();
 
-    for (idx, prob) in probs.iter().enumerate() {
+    for (idx, prob) in probs.1.iter().enumerate() {
         if (prob - max_prob).abs() < FP_EQUALITY_THRESH {
-            snps_at_max.push(idx);
+            snps_at_max.push(probs.0.get(idx).unwrap().to_owned());
         }
     }
 
@@ -302,4 +303,60 @@ pub fn update_pheromones(
         update_single_pheromone(pheromones, pher_idx_0, evap_coeff, lambda, good_solution);
         update_single_pheromone(pheromones, pher_idx_1, evap_coeff, lambda, good_solution);
     }
+}
+
+// not a general function. slapped together only for use with this
+// data
+pub fn naive_one_hot(x: &Matrix) -> Matrix {
+    let mut m_out: Matrix = (Vec::new(), 0);
+
+    for col_idx in 0..x.1 {
+        let mut new_cols: Matrix = (Vec::with_capacity((x.0.len() / x.1) * 3), 3);
+
+        for row_idx in 0..(x.0.len() / x.1) {
+            let element_idx: usize = col_idx * x.1 + row_idx;
+            let element: &Element = x.0.get(element_idx).unwrap();
+            
+            if element == &0.0 {
+                new_cols.0.push(1.0);
+                new_cols.0.push(0.0);
+                new_cols.0.push(0.0);
+            } else if element == &1.0 {
+                new_cols.0.push(0.0);
+                new_cols.0.push(1.0);
+                new_cols.0.push(0.0);
+            } else {
+                new_cols.0.push(0.0);
+                new_cols.0.push(0.0);
+                new_cols.0.push(1.0);
+            }
+        }
+
+        if col_idx == 0 {
+            m_out = new_cols;
+        } else {
+            m_out = append_columns(&m_out, &new_cols);
+        }
+    }
+
+    m_out
+}
+
+pub fn get_interactive_term(x: &Matrix) -> Matrix {
+    let mut m_out: Matrix = (Vec::new(), 1);
+
+    for row_idx in 0..(x.0.len() / x.1) {
+        let row_start_idx = row_idx * x.1;
+        let row_end_idx = row_start_idx + x.1;
+
+        let mut product: f64 = 1.0;
+
+        for idx in row_start_idx..row_end_idx {
+            product = product * x.0.get(idx).unwrap();
+        }
+
+        m_out.0.push(product);
+    }
+
+    m_out
 }

@@ -16,13 +16,16 @@ const PROPORTION_TO_SELECT: f64 = 0.15;
 
 pub fn train_one(idx: &usize, paths: &Vec<Vec<SNP>>, x: &Matrix, y: &Matrix) -> (usize, f64) {
     let path = paths.get(idx.to_owned()).unwrap();
-    let subset: Matrix = column_subset(&x, &path);
+    let mut subset: Matrix = naive_one_hot(&column_subset(&x, &path));
+
+    let int_term: Matrix = get_interactive_term(x);
+
+    subset = append_columns(&subset, &int_term);
 
     let mut model = LogRegressor::new();
     let loss = model.train(&subset, &y, LR_N_ITERS, LR_LEARN_RATE);
 
     (idx.to_owned(), loss)
-    //losses.push((idx.to_owned(), loss));
 }
 
 pub fn aco(params: &Config) {
@@ -57,7 +60,7 @@ pub fn aco(params: &Config) {
     }
 
     let num_iters: usize = 50;
-    
+
     // retain the top solutions
     let mut top_solutions: Vec<(Vec<String>, f64)> = Vec::new();
     // top paths at any given iter
@@ -91,11 +94,13 @@ pub fn aco(params: &Config) {
 
         // sort losses
         losses.sort_by(|a, b| a.1.partial_cmp(&b.1).unwrap());
-        
 
         for idx in 0..3 {
             let path: Vec<SNP> = paths.get(losses.get(idx).unwrap().0).unwrap().to_owned();
-            let snps: Vec<String> = path.iter().map(|s| header.get(s.to_owned()).unwrap().to_owned()).collect();
+            let snps: Vec<String> = path
+                .iter()
+                .map(|s| header.get(s.to_owned()).unwrap().to_owned())
+                .collect();
             top_solutions.push((snps, losses.get(idx).unwrap().1));
         }
 
@@ -120,7 +125,6 @@ pub fn aco(params: &Config) {
                 println!("Path: {:?}", snps);
             }
         }*/
-
     }
 
     top_solutions.sort_by(|a, b| a.1.partial_cmp(&b.1).unwrap());
