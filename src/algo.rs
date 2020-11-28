@@ -67,7 +67,8 @@ pub fn aco(params: &Config) {
     //let mut top_three: Vec<(usize, f64)> = Vec::new();
     ///////////////
     // init pheromones matrix
-    let mut pheromones: Matrix = init_pheromones(num_snps);
+    //let mut pheromones: Matrix = init_pheromones(num_snps);
+    let mut pheromones: Matrix = init_pheromones(&x);
 
     for _ in 0..num_iters {
         // give each ant its first snp

@@ -135,7 +135,53 @@ pub fn init_ants(num_ants: usize, num_snps: usize, epis_dim: usize) -> Vec<Vec<S
     paths_out
 }
 
-pub fn init_pheromones(num_snps: usize) -> Matrix {
+// A special dot function, multiplies the transpose of the first matrix a by
+// the second matrix b. Avoids a memory allocation
+pub fn tdot(a: &Matrix, b: &Matrix) -> Matrix {
+    let mut m_out: Matrix = (Vec::with_capacity(b.1 * a.0.len() / a.1), b.1);
+
+    if a.0.len() / a.1 != (b.0.len() / b.1) {
+        panic!("utils::tdot - matrices are not conformable!");
+    }
+
+    for a_col in 0..a.1 {
+        for col in 0..b.1 {
+            let mut sum: Element = 0.0;
+
+            let mut a_idx: usize = a_col;
+            //let a_end: usize = a_col;
+
+            let mut b_idx: usize = col;
+
+            for _ in 0..(a.0.len() / a.1) {
+                sum += a.0.get(a_idx).unwrap() * b.0.get(b_idx).unwrap();
+                a_idx += a.1;
+                b_idx += b.1;
+            }
+
+            m_out.0.push(sum);
+        }
+    }
+    m_out
+}
+
+pub fn init_pheromones(x: &Matrix) -> Matrix {
+    let mut m_out: Matrix = (Vec::with_capacity(x.1 * x.1), x.1);
+    
+    let co_occs: Matrix = tdot(x, x);
+
+	for value in co_occs.0.iter() {
+		if value == &0.0 {
+            m_out.0.push(0.0);
+        } else {
+            m_out.0.push(1.0);
+        }
+	}
+
+    m_out
+}
+
+pub fn old_init_pheromones(num_snps: usize) -> Matrix {
     let mut matrix_out: Matrix = (Vec::new(), num_snps);
 
     for _ in 0..num_snps {
@@ -316,7 +362,7 @@ pub fn naive_one_hot(x: &Matrix) -> Matrix {
         for row_idx in 0..(x.0.len() / x.1) {
             let element_idx: usize = col_idx * x.1 + row_idx;
             let element: &Element = x.0.get(element_idx).unwrap();
-            
+
             if element == &0.0 {
                 new_cols.0.push(1.0);
                 new_cols.0.push(0.0);
