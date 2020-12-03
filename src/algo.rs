@@ -14,9 +14,23 @@ const LR_N_ITERS: usize = 500;
 const LR_LEARN_RATE: f64 = 0.1;
 const PROPORTION_TO_SELECT: f64 = 0.15;
 
+pub fn chi_square_test(contingency_table: &Matrix) -> f64 {//, snps: &Vec<SNP>) -> f64 {
+    let expected_freqs: Matrix = get_expected_freqs(contingency_table);
+    
+    let mut chi_square = 0.0;
+
+    for (idx, observed) in contingency_table.0.iter().enumerate() {
+        let expected = expected_freqs.0.get(idx).unwrap();
+        chi_square += (observed - expected).powi(2) / expected;
+    }
+    
+    chi_square
+}
+
 pub fn train_one(idx: &usize, paths: &Vec<Vec<SNP>>, x: &Matrix, y: &Matrix) -> (usize, f64) {
     let path = paths.get(idx.to_owned()).unwrap();
-    let mut subset: Matrix = naive_one_hot(&column_subset(&x, &path));
+    //let mut subset: Matrix = naive_one_hot(&column_subset(&x, &path));
+    let mut subset: Matrix = column_subset(&x, &path);
 
     let int_term: Matrix = get_interactive_term(x);
 
@@ -62,13 +76,13 @@ pub fn aco(params: &Config) {
     let num_iters: usize = 50;
 
     // retain the top solutions
-    let mut top_solutions: Vec<(Vec<String>, f64)> = Vec::new();
+    let mut top_solutions: Vec<(Vec<String>, Vec<SNP>, f64)> = Vec::new();
     // top paths at any given iter
     //let mut top_three: Vec<(usize, f64)> = Vec::new();
     ///////////////
     // init pheromones matrix
-    //let mut pheromones: Matrix = init_pheromones(num_snps);
-    let mut pheromones: Matrix = init_pheromones(&x);
+    let mut pheromones: Matrix = init_pheromones(num_snps);
+    //let mut pheromones: Matrix = init_pheromones(&x);
 
     for _ in 0..num_iters {
         // give each ant its first snp
@@ -102,7 +116,7 @@ pub fn aco(params: &Config) {
                 .iter()
                 .map(|s| header.get(s.to_owned()).unwrap().to_owned())
                 .collect();
-            top_solutions.push((snps, losses.get(idx).unwrap().1));
+            top_solutions.push((snps, path, losses.get(idx).unwrap().1));
         }
 
         // select top proportion of solutions
@@ -131,8 +145,14 @@ pub fn aco(params: &Config) {
     top_solutions.sort_by(|a, b| a.1.partial_cmp(&b.1).unwrap());
 
     for idx in 0..10 {
-        let sol: &(Vec<String>, f64) = top_solutions.get(idx).unwrap();
-        println!("Path: {:?} Loss: {}", sol.0, sol.1);
+        let sol: &(Vec<String>, Vec<SNP>, f64) = top_solutions.get(idx).unwrap();
+        
+        let col_subset: Matrix = column_subset(&x, &sol.1);
+
+        let contingency_table: Matrix = build_contingency_table(&col_subset, &y);
+
+        let test_stat: f64 = chi_square_test(&contingency_table);
+        println!("Path: {:?} Loss: {} X2 test stat: {}", sol.0, sol.2, test_stat);
     }
 
     //print_matrix(&pheromones);

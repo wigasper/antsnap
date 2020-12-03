@@ -165,23 +165,23 @@ pub fn tdot(a: &Matrix, b: &Matrix) -> Matrix {
     m_out
 }
 
-pub fn init_pheromones(x: &Matrix) -> Matrix {
+pub fn test_init_pheromones(x: &Matrix) -> Matrix {
     let mut m_out: Matrix = (Vec::with_capacity(x.1 * x.1), x.1);
-    
+
     let co_occs: Matrix = tdot(x, x);
 
-	for value in co_occs.0.iter() {
-		if value == &0.0 {
+    for value in co_occs.0.iter() {
+        if value == &0.0 {
             m_out.0.push(0.0);
         } else {
             m_out.0.push(1.0);
         }
-	}
+    }
 
     m_out
 }
 
-pub fn old_init_pheromones(num_snps: usize) -> Matrix {
+pub fn init_pheromones(num_snps: usize) -> Matrix {
     let mut matrix_out: Matrix = (Vec::new(), num_snps);
 
     for _ in 0..num_snps {
@@ -206,6 +206,9 @@ pub fn get_column(m: &Matrix, j: usize) -> Matrix {
 
     m_out
 }
+
+
+
 
 // append b columns to a
 pub fn append_columns(a: &Matrix, b: &Matrix) -> Matrix {
@@ -405,4 +408,72 @@ pub fn get_interactive_term(x: &Matrix) -> Matrix {
     }
 
     m_out
+}
+
+// NOTE this works only for 3-snp combos
+pub fn build_contingency_table(x: &Matrix, y: &Matrix) -> Matrix {
+    let mut contingency_table: Matrix = (Vec::with_capacity(3usize.pow(x.1 as u32) * 2), 
+                                                            3usize.pow(x.1 as u32));
+    for _ in 0..(3usize.pow(x.1 as u32) * 2) {
+        contingency_table.0.push(0.0);
+    }
+
+    let n_rows = x.0.len() / x.1;
+
+    for row_idx in 0..n_rows {
+        let mut x_vals: Vec<f64> = Vec::with_capacity(x.1);
+        for col_idx in 0..x.1 {
+            let idx = x.1 * row_idx + col_idx;
+            x_vals.push(x.0.get(idx).unwrap().to_owned());
+        }
+        
+        let mut table_idx: usize = (x_vals.get(0).unwrap() * 9.0 + x_vals.get(1).unwrap() * 3.0 +
+            x_vals.get(2).unwrap()) as usize;
+        
+        if y.0.get(row_idx).unwrap() == &1.0 {
+            table_idx += 3usize.pow(x.1 as u32);
+        }
+
+        if let Some(val) = contingency_table.0.get_mut(table_idx) {
+            *val += 1.0;
+        }
+    }
+
+    contingency_table
+}
+
+pub fn col_sum(m: &Matrix, col: usize) -> f64 {
+    let mut sum: f64 = 0.0;
+
+    for row_idx in 0..(m.0.len() / m.1) {
+        sum += m.0.get(m.1 * row_idx + col).unwrap();
+    }
+
+    sum
+}
+
+pub fn row_sum(m: &Matrix, row: usize) -> f64 {
+    let mut sum: f64 = 0.0;
+
+    for col_idx in 0..m.1 {
+        sum += m.0.get(m.1 * row + col_idx).unwrap();
+    }
+
+    sum
+}
+
+pub fn get_expected_freqs(table: &Matrix) -> Matrix {
+    let total: f64 = table.0.iter().sum();
+    let mut table_out: Matrix = (Vec::with_capacity(table.0.len()), table.1);
+    
+    // this is the slow way
+    let n_rows = table.0.len() / table.1;
+    
+    for row_idx in 0..n_rows {
+        for col_idx in 0..table.1 {
+            table_out.0.push((col_sum(table, col_idx) * row_sum(table, row_idx)) / total);
+        }
+    }
+
+    table_out
 }
