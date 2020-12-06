@@ -4,7 +4,7 @@ use crate::config::*;
 use crate::utils::*;
 
 use logregressor::model::*;
-//use logregressor::utils::print_matrix;
+use logregressor::utils::print_matrix;
 
 type SNP = usize;
 type Element = f64;
@@ -14,16 +14,19 @@ const LR_N_ITERS: usize = 500;
 const LR_LEARN_RATE: f64 = 0.1;
 const PROPORTION_TO_SELECT: f64 = 0.15;
 
-pub fn chi_square_test(contingency_table: &Matrix) -> f64 {//, snps: &Vec<SNP>) -> f64 {
+pub fn chi_square_test(contingency_table: &Matrix) -> f64 {
+    //, snps: &Vec<SNP>) -> f64 {
     let expected_freqs: Matrix = get_expected_freqs(contingency_table);
-    
+
     let mut chi_square = 0.0;
 
     for (idx, observed) in contingency_table.0.iter().enumerate() {
         let expected = expected_freqs.0.get(idx).unwrap();
-        chi_square += (observed - expected).powi(2) / expected;
+        if expected != &0.0 {        
+            chi_square += (observed - expected).powi(2) / expected;
+        }
     }
-    
+
     chi_square
 }
 
@@ -32,7 +35,7 @@ pub fn train_one(idx: &usize, paths: &Vec<Vec<SNP>>, x: &Matrix, y: &Matrix) -> 
     //let mut subset: Matrix = naive_one_hot(&column_subset(&x, &path));
     let mut subset: Matrix = column_subset(&x, &path);
 
-    let int_term: Matrix = get_interactive_term(x);
+    let int_term: Matrix = get_interactive_term(&subset);
 
     subset = append_columns(&subset, &int_term);
 
@@ -88,13 +91,6 @@ pub fn aco(params: &Config) {
         // give each ant its first snp
         let mut paths: Vec<Vec<SNP>> = init_ants(num_ants, num_snps, epis_dim);
 
-        //for path in paths.iter_mut() {
-        //    expand_path(path, &pheromones, epis_dim, threshold);
-        //}
-        // for each ant
-        //paths.par_iter_mut().map(|p| {
-        //    expand_path(p, &pheromones, epis_dim, threshold);
-        //});
         paths.par_iter_mut().for_each(|p| {
             expand_path(p, &pheromones, epis_dim, threshold);
         });
@@ -132,29 +128,59 @@ pub fn aco(params: &Config) {
             let this_path = paths.get(losses.get(idx).unwrap().0).unwrap();
             update_pheromones(&mut pheromones, &this_path, &evap_coeff, &lambda, false);
         }
-        /*
-        if iter == num_iters - 1 {
-            for index in (0..3) {
-                let path: &Vec<SNP> = paths.get(losses.get(index).unwrap().0).unwrap();
-                let snps: Vec<String> = path.iter().map(|s| header.get(s.to_owned()).unwrap().to_owned()).collect();
-                println!("Path: {:?}", snps);
-            }
-        }*/
     }
 
     top_solutions.sort_by(|a, b| a.1.partial_cmp(&b.1).unwrap());
+    
+    let mut top_stats: Vec<(Vec<String>, f64)> = Vec::new();
 
+    for solution in top_solutions.iter() {
+        let sol: &(Vec<String>, Vec<SNP>, f64) = solution;
+        let col_subset: Matrix = column_subset(&x, &sol.1);
+        let contingency_table: Matrix = build_contingency_table(&col_subset, &y);
+        let test_stat: f64 = chi_square_test(&contingency_table);
+
+        top_stats.push((sol.0.to_owned(), test_stat));
+    }
+
+    top_stats.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap());
+
+    for idx in 0..30 {
+        let this_sol = top_stats.get(idx).unwrap();
+        println!("Path: {:?} X2 test stat: {}", this_sol.0, this_sol.1);
+    }
+/*
     for idx in 0..10 {
         let sol: &(Vec<String>, Vec<SNP>, f64) = top_solutions.get(idx).unwrap();
-        
+
         let col_subset: Matrix = column_subset(&x, &sol.1);
 
         let contingency_table: Matrix = build_contingency_table(&col_subset, &y);
+        
+        //println!("table_dim: {} this table:", contingency_table.1);
+        //print_matrix(&contingency_table);
+        //println!("end");
 
         let test_stat: f64 = chi_square_test(&contingency_table);
-        println!("Path: {:?} Loss: {} X2 test stat: {}", sol.0, sol.2, test_stat);
+        println!(
+            "Path: {:?} Loss: {} X2 test stat: {}",
+            sol.0, sol.2, test_stat
+        );
     }
+*/
+    let true_sol: Vec<SNP> = vec![x.1 - 3, x.1 - 2, x.1 - 1];
+    let mut col_subset: Matrix = column_subset(&x, &true_sol);
+    let contingency_table: Matrix = build_contingency_table(&col_subset, &y);
+    let test_stat: f64 = chi_square_test(&contingency_table);
+    println!("True sol test stat: {}", test_stat);
+    
+    let int_term: Matrix = get_interactive_term(&col_subset);
 
+    col_subset = append_columns(&col_subset, &int_term);
+
+    let mut model = LogRegressor::new();
+    let loss = model.train(&col_subset, &y, LR_N_ITERS, LR_LEARN_RATE);
+    println!("True sol loss: {}", loss);
     //print_matrix(&pheromones);
 }
 
