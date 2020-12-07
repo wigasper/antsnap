@@ -6,6 +6,8 @@ use std::io::prelude::*;
 use rand::prelude::*;
 use rand::seq::SliceRandom;
 
+use logregressor::utils::print_matrix;
+
 type SNP = usize;
 type Element = f64;
 type Matrix = (Vec<Element>, usize);
@@ -58,10 +60,12 @@ pub fn get_max(slice: &[f64]) -> f64 {
 
     // TODO: there is an early exit here, might see if this
     // actually is beneficial
+    //for val in slice.iter() {
+    //    if (max - 1.0).abs() < FP_EQUALITY_THRESH {
+    //        break;
+    //    } else if val > max {
     for val in slice.iter() {
-        if (max - 1.0).abs() < FP_EQUALITY_THRESH {
-            break;
-        } else if val > max {
+        if val > max {
             max = val;
         }
     }
@@ -206,9 +210,6 @@ pub fn get_column(m: &Matrix, j: usize) -> Matrix {
 
     m_out
 }
-
-
-
 
 // append b columns to a
 pub fn append_columns(a: &Matrix, b: &Matrix) -> Matrix {
@@ -412,8 +413,11 @@ pub fn get_interactive_term(x: &Matrix) -> Matrix {
 
 // NOTE this works only for 3-snp combos
 pub fn build_contingency_table(x: &Matrix, y: &Matrix) -> Matrix {
-    let mut contingency_table: Matrix = (Vec::with_capacity(3usize.pow(x.1 as u32) * 2), 
-                                                            3usize.pow(x.1 as u32));
+    let mut contingency_table: Matrix = (
+        Vec::with_capacity(3usize.pow(x.1 as u32) * 2),
+        3usize.pow(x.1 as u32),
+    );
+
     for _ in 0..(3usize.pow(x.1 as u32) * 2) {
         contingency_table.0.push(0.0);
     }
@@ -426,10 +430,11 @@ pub fn build_contingency_table(x: &Matrix, y: &Matrix) -> Matrix {
             let idx = x.1 * row_idx + col_idx;
             x_vals.push(x.0.get(idx).unwrap().to_owned());
         }
-        
-        let mut table_idx: usize = (x_vals.get(0).unwrap() * 9.0 + x_vals.get(1).unwrap() * 3.0 +
-            x_vals.get(2).unwrap()) as usize;
-        
+
+        let mut table_idx: usize = (x_vals.get(0).unwrap() * 9.0
+            + x_vals.get(1).unwrap() * 3.0
+            + x_vals.get(2).unwrap()) as usize;
+
         if y.0.get(row_idx).unwrap() == &1.0 {
             table_idx += 3usize.pow(x.1 as u32);
         }
@@ -465,13 +470,18 @@ pub fn row_sum(m: &Matrix, row: usize) -> f64 {
 pub fn get_expected_freqs(table: &Matrix) -> Matrix {
     let total: f64 = table.0.iter().sum();
     let mut table_out: Matrix = (Vec::with_capacity(table.0.len()), table.1);
-    
+
     // this is the slow way
     let n_rows = table.0.len() / table.1;
-    
+
     for row_idx in 0..n_rows {
         for col_idx in 0..table.1 {
-            table_out.0.push((col_sum(table, col_idx) * row_sum(table, row_idx)) / total);
+            table_out
+                .0
+                .push((col_sum(table, col_idx) * row_sum(table, row_idx)) / total);
+            //if ((col_sum(table, col_idx) * row_sum(table, row_idx)) / total) == 0.0 {
+            //    print_matrix(table);
+            //}
         }
     }
 
