@@ -82,7 +82,7 @@ pub fn aco(params: &Config) {
 
     // retain the top solutions
     let mut top_losses: Vec<(Vec<String>, Vec<SNP>, f64)> = Vec::new();
-    
+
     // init pheromones matrix
     let mut pheromones: Matrix = init_pheromones(num_snps);
 
@@ -170,4 +170,3 @@ pub fn aco(params: &Config) {
     let loss = model.train(&col_subset, &y, LR_N_ITERS, LR_LEARN_RATE);
     println!("True sol loss: {}", loss);
 }
-
