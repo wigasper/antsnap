@@ -30,7 +30,7 @@ mod tests {
         let b: Matrix = (b_vals, 3);
 
         let result = append_columns(&a, &b);
-        let e_vals = (vec![1.2, 2.3, 3.4, 1.2, 2.3, 3.4, 4.5, 5.6, 6.7, 4.5, 5.6, 6.7]);
+        let e_vals = vec![1.2, 2.3, 3.4, 1.2, 2.3, 3.4, 4.5, 5.6, 6.7, 4.5, 5.6, 6.7];
         let expected = (e_vals, 6);
 
         assert_eq!(result.0, expected.0);

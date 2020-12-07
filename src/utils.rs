@@ -6,8 +6,6 @@ use std::io::prelude::*;
 use rand::prelude::*;
 use rand::seq::SliceRandom;
 
-use logregressor::utils::print_matrix;
-
 type SNP = usize;
 type Element = f64;
 type Matrix = (Vec<Element>, usize);
@@ -58,12 +56,6 @@ pub fn transfer_prob(
 pub fn get_max(slice: &[f64]) -> f64 {
     let mut max: &f64 = slice.get(0).unwrap();
 
-    // TODO: there is an early exit here, might see if this
-    // actually is beneficial
-    //for val in slice.iter() {
-    //    if (max - 1.0).abs() < FP_EQUALITY_THRESH {
-    //        break;
-    //    } else if val > max {
     for val in slice.iter() {
         if val > max {
             max = val;
@@ -79,7 +71,6 @@ pub fn expand_path(
     epis_dim: usize,
     threshold: f64,
 ) {
-    //params: &Config) {
     let mut rng = rand::thread_rng();
 
     while current_path.len() < epis_dim {
@@ -139,6 +130,7 @@ pub fn init_ants(num_ants: usize, num_snps: usize, epis_dim: usize) -> Vec<Vec<S
     paths_out
 }
 
+// TODO I think this is unused, delete later if so
 // A special dot function, multiplies the transpose of the first matrix a by
 // the second matrix b. Avoids a memory allocation
 pub fn tdot(a: &Matrix, b: &Matrix) -> Matrix {
@@ -197,7 +189,6 @@ pub fn init_pheromones(num_snps: usize) -> Matrix {
     matrix_out
 }
 
-//type Matrix = (Vec<Element>, usize);
 // returns a m x 1 matrix
 pub fn get_column(m: &Matrix, j: usize) -> Matrix {
     let mut m_out: Matrix = (Vec::new(), 1);
@@ -259,9 +250,6 @@ pub fn append_rows(a: &mut Matrix, b: &Matrix) {
     }
 }
 
-// TODO: better way to do this, probably:
-//      each needed column is added in a row, this si super easy just w/ vals
-//      then transpose at the end
 pub fn column_subset(m: &Matrix, cols: &Vec<usize>) -> Matrix {
     let init_vals: Vec<Element> = get_column(m, cols.first().unwrap().to_owned()).0;
     let mut m_out_T: Matrix = (init_vals, m.0.len() / m.1);
