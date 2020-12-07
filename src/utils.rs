@@ -6,6 +6,8 @@ use std::io::prelude::*;
 use rand::prelude::*;
 use rand::seq::SliceRandom;
 
+use logregressor::utils::print_matrix;
+
 type SNP = usize;
 type Element = f64;
 type Matrix = (Vec<Element>, usize);
@@ -58,10 +60,12 @@ pub fn get_max(slice: &[f64]) -> f64 {
 
     // TODO: there is an early exit here, might see if this
     // actually is beneficial
+    //for val in slice.iter() {
+    //    if (max - 1.0).abs() < FP_EQUALITY_THRESH {
+    //        break;
+    //    } else if val > max {
     for val in slice.iter() {
-        if (max - 1.0).abs() < FP_EQUALITY_THRESH {
-            break;
-        } else if val > max {
+        if val > max {
             max = val;
         }
     }
@@ -92,11 +96,11 @@ pub fn add_to_path(
 ) {
     let i: &SNP = current_path.last().unwrap();
 
-    let mut probs: Vec<f64> = Vec::new();
+    let mut probs: (Vec<usize>, Vec<f64>) = (Vec::new(), Vec::new());
 
-    for snp in (0..pheromones.1) {
+    for snp in 0..pheromones.1 {
         if !current_path.contains(&snp) {
-            probs.push(transfer_prob(
+            probs.1.push(transfer_prob(
                 i,
                 &snp,
                 pheromones,
@@ -104,16 +108,17 @@ pub fn add_to_path(
                 rng,
                 threshold,
             ));
+            probs.0.push(snp);
         }
     }
 
-    let max_prob = get_max(&probs);
+    let max_prob = get_max(&probs.1);
 
     let mut snps_at_max: Vec<SNP> = Vec::new();
 
-    for (idx, prob) in probs.iter().enumerate() {
+    for (idx, prob) in probs.1.iter().enumerate() {
         if (prob - max_prob).abs() < FP_EQUALITY_THRESH {
-            snps_at_max.push(idx);
+            snps_at_max.push(probs.0.get(idx).unwrap().to_owned());
         }
     }
 
@@ -132,6 +137,52 @@ pub fn init_ants(num_ants: usize, num_snps: usize, epis_dim: usize) -> Vec<Vec<S
     }
 
     paths_out
+}
+
+// A special dot function, multiplies the transpose of the first matrix a by
+// the second matrix b. Avoids a memory allocation
+pub fn tdot(a: &Matrix, b: &Matrix) -> Matrix {
+    let mut m_out: Matrix = (Vec::with_capacity(b.1 * a.0.len() / a.1), b.1);
+
+    if a.0.len() / a.1 != (b.0.len() / b.1) {
+        panic!("utils::tdot - matrices are not conformable!");
+    }
+
+    for a_col in 0..a.1 {
+        for col in 0..b.1 {
+            let mut sum: Element = 0.0;
+
+            let mut a_idx: usize = a_col;
+            //let a_end: usize = a_col;
+
+            let mut b_idx: usize = col;
+
+            for _ in 0..(a.0.len() / a.1) {
+                sum += a.0.get(a_idx).unwrap() * b.0.get(b_idx).unwrap();
+                a_idx += a.1;
+                b_idx += b.1;
+            }
+
+            m_out.0.push(sum);
+        }
+    }
+    m_out
+}
+
+pub fn test_init_pheromones(x: &Matrix) -> Matrix {
+    let mut m_out: Matrix = (Vec::with_capacity(x.1 * x.1), x.1);
+
+    let co_occs: Matrix = tdot(x, x);
+
+    for value in co_occs.0.iter() {
+        if value == &0.0 {
+            m_out.0.push(0.0);
+        } else {
+            m_out.0.push(1.0);
+        }
+    }
+
+    m_out
 }
 
 pub fn init_pheromones(num_snps: usize) -> Matrix {
@@ -302,4 +353,137 @@ pub fn update_pheromones(
         update_single_pheromone(pheromones, pher_idx_0, evap_coeff, lambda, good_solution);
         update_single_pheromone(pheromones, pher_idx_1, evap_coeff, lambda, good_solution);
     }
+}
+
+// not a general function. slapped together only for use with this
+// data
+pub fn naive_one_hot(x: &Matrix) -> Matrix {
+    let mut m_out: Matrix = (Vec::new(), 0);
+
+    for col_idx in 0..x.1 {
+        let mut new_cols: Matrix = (Vec::with_capacity((x.0.len() / x.1) * 3), 3);
+
+        for row_idx in 0..(x.0.len() / x.1) {
+            let element_idx: usize = col_idx * x.1 + row_idx;
+            let element: &Element = x.0.get(element_idx).unwrap();
+
+            if element == &0.0 {
+                new_cols.0.push(1.0);
+                new_cols.0.push(0.0);
+                new_cols.0.push(0.0);
+            } else if element == &1.0 {
+                new_cols.0.push(0.0);
+                new_cols.0.push(1.0);
+                new_cols.0.push(0.0);
+            } else {
+                new_cols.0.push(0.0);
+                new_cols.0.push(0.0);
+                new_cols.0.push(1.0);
+            }
+        }
+
+        if col_idx == 0 {
+            m_out = new_cols;
+        } else {
+            m_out = append_columns(&m_out, &new_cols);
+        }
+    }
+
+    m_out
+}
+
+pub fn get_interactive_term(x: &Matrix) -> Matrix {
+    let mut m_out: Matrix = (Vec::new(), 1);
+
+    for row_idx in 0..(x.0.len() / x.1) {
+        let row_start_idx = row_idx * x.1;
+        let row_end_idx = row_start_idx + x.1;
+
+        let mut product: f64 = 1.0;
+
+        for idx in row_start_idx..row_end_idx {
+            product = product * x.0.get(idx).unwrap();
+        }
+
+        m_out.0.push(product);
+    }
+
+    m_out
+}
+
+// NOTE this works only for 3-snp combos
+pub fn build_contingency_table(x: &Matrix, y: &Matrix) -> Matrix {
+    let mut contingency_table: Matrix = (
+        Vec::with_capacity(3usize.pow(x.1 as u32) * 2),
+        3usize.pow(x.1 as u32),
+    );
+
+    for _ in 0..(3usize.pow(x.1 as u32) * 2) {
+        contingency_table.0.push(0.0);
+    }
+
+    let n_rows = x.0.len() / x.1;
+
+    for row_idx in 0..n_rows {
+        let mut x_vals: Vec<f64> = Vec::with_capacity(x.1);
+        for col_idx in 0..x.1 {
+            let idx = x.1 * row_idx + col_idx;
+            x_vals.push(x.0.get(idx).unwrap().to_owned());
+        }
+
+        let mut table_idx: usize = (x_vals.get(0).unwrap() * 9.0
+            + x_vals.get(1).unwrap() * 3.0
+            + x_vals.get(2).unwrap()) as usize;
+
+        if y.0.get(row_idx).unwrap() == &1.0 {
+            table_idx += 3usize.pow(x.1 as u32);
+        }
+
+        if let Some(val) = contingency_table.0.get_mut(table_idx) {
+            *val += 1.0;
+        }
+    }
+
+    contingency_table
+}
+
+pub fn col_sum(m: &Matrix, col: usize) -> f64 {
+    let mut sum: f64 = 0.0;
+
+    for row_idx in 0..(m.0.len() / m.1) {
+        sum += m.0.get(m.1 * row_idx + col).unwrap();
+    }
+
+    sum
+}
+
+pub fn row_sum(m: &Matrix, row: usize) -> f64 {
+    let mut sum: f64 = 0.0;
+
+    for col_idx in 0..m.1 {
+        sum += m.0.get(m.1 * row + col_idx).unwrap();
+    }
+
+    sum
+}
+
+pub fn get_expected_freqs(table: &Matrix) -> Matrix {
+    let total: f64 = table.0.iter().sum();
+    let mut table_out: Matrix = (Vec::with_capacity(table.0.len()), table.1);
+
+    // this is the slow way
+    let n_rows = table.0.len() / table.1;
+
+    for row_idx in 0..n_rows {
+        for col_idx in 0..table.1 {
+            table_out
+                .0
+                .push((col_sum(table, col_idx) * row_sum(table, row_idx)) / total);
+            //if ((col_sum(table, col_idx) * row_sum(table, row_idx)) / total) == 0.0 {
+            //    print_matrix(table);
+            //}
+        }
+    }
+
+    table_out
 }

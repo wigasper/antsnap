@@ -7,7 +7,6 @@ use antsnap::config::*;
 use std::path::{Path, PathBuf};
 
 fn main() {
-    
     let matches = App::new("antsnap")
         .version("0.1")
         .author("William Gasper <wkg@williamgasper.com>")

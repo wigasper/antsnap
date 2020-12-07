@@ -4,6 +4,7 @@ pub mod utils;
 
 #[cfg(test)]
 mod tests {
+    use crate::algo::*;
     use crate::config::*;
     use crate::utils::*;
 
@@ -69,5 +70,34 @@ mod tests {
         let expected: Matrix = (e_vals, 2);
 
         assert_eq!(b, expected);
+    }
+
+    #[test]
+    fn get_expected_freqs_0() {
+        let t: Matrix = (vec![3.0, 2.0, 2.0, 4.0, 0.0, 1.0], 3);
+
+        let actual: Matrix = get_expected_freqs(&t);
+        let expect: Matrix = (
+            vec![
+                4.083333333333333,
+                1.1666666666666667,
+                1.75,
+                2.9166666666666665,
+                0.8333333333333334,
+                1.25,
+            ],
+            3,
+        );
+
+        assert_eq!(actual, expect);
+    }
+
+    #[test]
+    fn chi_square_test_0() {
+        let t: Matrix = (vec![3.0, 2.0, 2.0, 4.0, 0.0, 1.0], 3);
+        let actual: f64 = chi_square_test(&t);
+        let expect: f64 = 2.204081632653061;
+
+        assert_eq!(actual, expect);
     }
 }
