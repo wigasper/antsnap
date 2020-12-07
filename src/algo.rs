@@ -4,18 +4,21 @@ use crate::config::*;
 use crate::utils::*;
 
 use logregressor::model::*;
-use logregressor::utils::print_matrix;
 
 type SNP = usize;
 type Element = f64;
 type Matrix = (Vec<Element>, usize);
 
+// logregressor params
 const LR_N_ITERS: usize = 500;
 const LR_LEARN_RATE: f64 = 0.1;
+
+// top proportion of solutions to boost pheromone vals for
 const PROPORTION_TO_SELECT: f64 = 0.05;
+// number of solutions to retain per round
+const N_SOLUTIONS_TO_RETAIN: usize = 10;
 
 pub fn chi_square_test(contingency_table: &Matrix) -> f64 {
-    //, snps: &Vec<SNP>) -> f64 {
     let expected_freqs: Matrix = get_expected_freqs(contingency_table);
 
     let mut chi_square = 0.0;
@@ -32,7 +35,6 @@ pub fn chi_square_test(contingency_table: &Matrix) -> f64 {
 
 pub fn train_one(idx: &usize, paths: &Vec<Vec<SNP>>, x: &Matrix, y: &Matrix) -> (usize, f64) {
     let path = paths.get(idx.to_owned()).unwrap();
-    //let mut subset: Matrix = naive_one_hot(&column_subset(&x, &path));
     let mut subset: Matrix = column_subset(&x, &path);
 
     let int_term: Matrix = get_interactive_term(&subset);
@@ -80,12 +82,9 @@ pub fn aco(params: &Config) {
 
     // retain the top solutions
     let mut top_losses: Vec<(Vec<String>, Vec<SNP>, f64)> = Vec::new();
-    // top paths at any given iter
-    //let mut top_three: Vec<(usize, f64)> = Vec::new();
-    ///////////////
+    
     // init pheromones matrix
     let mut pheromones: Matrix = init_pheromones(num_snps);
-    //let mut pheromones: Matrix = init_pheromones(&x);
 
     for _ in 0..num_iters {
         // give each ant its first snp
@@ -106,7 +105,7 @@ pub fn aco(params: &Config) {
         // sort losses
         losses.sort_by(|a, b| a.1.partial_cmp(&b.1).unwrap());
 
-        for idx in 0..3 {
+        for idx in 0..N_SOLUTIONS_TO_RETAIN {
             let path: Vec<SNP> = paths.get(losses.get(idx).unwrap().0).unwrap().to_owned();
             let snps: Vec<String> = path
                 .iter()
@@ -130,7 +129,7 @@ pub fn aco(params: &Config) {
         }
     }
 
-    top_losses.sort_by(|a, b| a.1.partial_cmp(&b.1).unwrap());
+    top_losses.sort_by(|a, b| a.2.partial_cmp(&b.2).unwrap());
 
     println!("LOSSES");
     for idx in 0..30 {
@@ -156,25 +155,7 @@ pub fn aco(params: &Config) {
         let this_sol = top_chi_stats.get(idx).unwrap();
         println!("Path: {:?}\tX2 test stat: {}", this_sol.0, this_sol.1);
     }
-    /*
-        for idx in 0..10 {
-            let sol: &(Vec<String>, Vec<SNP>, f64) = top_solutions.get(idx).unwrap();
 
-            let col_subset: Matrix = column_subset(&x, &sol.1);
-
-            let contingency_table: Matrix = build_contingency_table(&col_subset, &y);
-
-            //println!("table_dim: {} this table:", contingency_table.1);
-            //print_matrix(&contingency_table);
-            //println!("end");
-
-            let test_stat: f64 = chi_square_test(&contingency_table);
-            println!(
-                "Path: {:?} Loss: {} X2 test stat: {}",
-                sol.0, sol.2, test_stat
-            );
-        }
-    */
     let true_sol: Vec<SNP> = vec![x.1 - 3, x.1 - 2, x.1 - 1];
     let mut col_subset: Matrix = column_subset(&x, &true_sol);
     let contingency_table: Matrix = build_contingency_table(&col_subset, &y);
@@ -188,9 +169,5 @@ pub fn aco(params: &Config) {
     let mut model = LogRegressor::new();
     let loss = model.train(&col_subset, &y, LR_N_ITERS, LR_LEARN_RATE);
     println!("True sol loss: {}", loss);
-    //print_matrix(&pheromones);
 }
 
-// 10.1159/000085222
-//
-//
