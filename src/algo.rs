@@ -12,7 +12,7 @@ type Matrix = (Vec<Element>, usize);
 
 const LR_N_ITERS: usize = 500;
 const LR_LEARN_RATE: f64 = 0.1;
-const PROPORTION_TO_SELECT: f64 = 0.15;
+const PROPORTION_TO_SELECT: f64 = 0.05;
 
 pub fn chi_square_test(contingency_table: &Matrix) -> f64 {
     //, snps: &Vec<SNP>) -> f64 {
@@ -22,7 +22,7 @@ pub fn chi_square_test(contingency_table: &Matrix) -> f64 {
 
     for (idx, observed) in contingency_table.0.iter().enumerate() {
         let expected = expected_freqs.0.get(idx).unwrap();
-        if expected != &0.0 {        
+        if expected != &0.0 {
             chi_square += (observed - expected).powi(2) / expected;
         }
     }
@@ -79,7 +79,7 @@ pub fn aco(params: &Config) {
     let num_iters: usize = 50;
 
     // retain the top solutions
-    let mut top_solutions: Vec<(Vec<String>, Vec<SNP>, f64)> = Vec::new();
+    let mut top_losses: Vec<(Vec<String>, Vec<SNP>, f64)> = Vec::new();
     // top paths at any given iter
     //let mut top_three: Vec<(usize, f64)> = Vec::new();
     ///////////////
@@ -112,7 +112,7 @@ pub fn aco(params: &Config) {
                 .iter()
                 .map(|s| header.get(s.to_owned()).unwrap().to_owned())
                 .collect();
-            top_solutions.push((snps, path, losses.get(idx).unwrap().1));
+            top_losses.push((snps, path, losses.get(idx).unwrap().1));
         }
 
         // select top proportion of solutions
@@ -130,50 +130,57 @@ pub fn aco(params: &Config) {
         }
     }
 
-    top_solutions.sort_by(|a, b| a.1.partial_cmp(&b.1).unwrap());
+    top_losses.sort_by(|a, b| a.1.partial_cmp(&b.1).unwrap());
     
-    let mut top_stats: Vec<(Vec<String>, f64)> = Vec::new();
+    println!("LOSSES");
+    for idx in 0..30 {
+        let this_sol = top_losses.get(idx).unwrap();
+        println!("Path: {:?}\tLoss: {}", this_sol.0, this_sol.2);
+    }
 
-    for solution in top_solutions.iter() {
+    let mut top_chi_stats: Vec<(Vec<String>, f64)> = Vec::new();
+
+    for solution in top_losses.iter() {
         let sol: &(Vec<String>, Vec<SNP>, f64) = solution;
         let col_subset: Matrix = column_subset(&x, &sol.1);
         let contingency_table: Matrix = build_contingency_table(&col_subset, &y);
         let test_stat: f64 = chi_square_test(&contingency_table);
 
-        top_stats.push((sol.0.to_owned(), test_stat));
+        top_chi_stats.push((sol.0.to_owned(), test_stat));
     }
 
-    top_stats.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap());
-
+    top_chi_stats.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap());
+    
+    println!("\nCHI SQUARE TEST STATS");
     for idx in 0..30 {
-        let this_sol = top_stats.get(idx).unwrap();
-        println!("Path: {:?} X2 test stat: {}", this_sol.0, this_sol.1);
+        let this_sol = top_chi_stats.get(idx).unwrap();
+        println!("Path: {:?}\tX2 test stat: {}", this_sol.0, this_sol.1);
     }
-/*
-    for idx in 0..10 {
-        let sol: &(Vec<String>, Vec<SNP>, f64) = top_solutions.get(idx).unwrap();
+    /*
+        for idx in 0..10 {
+            let sol: &(Vec<String>, Vec<SNP>, f64) = top_solutions.get(idx).unwrap();
 
-        let col_subset: Matrix = column_subset(&x, &sol.1);
+            let col_subset: Matrix = column_subset(&x, &sol.1);
 
-        let contingency_table: Matrix = build_contingency_table(&col_subset, &y);
-        
-        //println!("table_dim: {} this table:", contingency_table.1);
-        //print_matrix(&contingency_table);
-        //println!("end");
+            let contingency_table: Matrix = build_contingency_table(&col_subset, &y);
 
-        let test_stat: f64 = chi_square_test(&contingency_table);
-        println!(
-            "Path: {:?} Loss: {} X2 test stat: {}",
-            sol.0, sol.2, test_stat
-        );
-    }
-*/
+            //println!("table_dim: {} this table:", contingency_table.1);
+            //print_matrix(&contingency_table);
+            //println!("end");
+
+            let test_stat: f64 = chi_square_test(&contingency_table);
+            println!(
+                "Path: {:?} Loss: {} X2 test stat: {}",
+                sol.0, sol.2, test_stat
+            );
+        }
+    */
     let true_sol: Vec<SNP> = vec![x.1 - 3, x.1 - 2, x.1 - 1];
     let mut col_subset: Matrix = column_subset(&x, &true_sol);
     let contingency_table: Matrix = build_contingency_table(&col_subset, &y);
     let test_stat: f64 = chi_square_test(&contingency_table);
     println!("True sol test stat: {}", test_stat);
-    
+
     let int_term: Matrix = get_interactive_term(&col_subset);
 
     col_subset = append_columns(&col_subset, &int_term);
