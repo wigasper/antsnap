@@ -1,0 +1,23 @@
+[algo]
+# currently this param is not used, may be deleted later
+init_pheromone_val = 1.0
+
+# t_0 may affect convergence speed, higher = less likely that
+# an ant will move to an SNP based on random chance
+# random discovery can be helpful for finding new paths
+t_0 = 0.2
+
+# evap_coeff affects pheromone updates
+# for a bad solution, pher = (1 - evap_coeff) * val
+# for a good sol:     pher = (1 - evap_coeff) * val + evap_coeff * lambda
+evap_coeff = 0.9
+
+epis_dim = 3
+num_ants = 4000
+#num_ants = 4000
+max_iters = 30
+
+# lambda affects pheromone boost given to "good" solutions
+lambda = 2
+
+data_fp = 'data/gametes_small_3'

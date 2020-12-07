@@ -131,7 +131,7 @@ pub fn aco(params: &Config) {
     }
 
     top_losses.sort_by(|a, b| a.1.partial_cmp(&b.1).unwrap());
-    
+
     println!("LOSSES");
     for idx in 0..30 {
         let this_sol = top_losses.get(idx).unwrap();
@@ -150,7 +150,7 @@ pub fn aco(params: &Config) {
     }
 
     top_chi_stats.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap());
-    
+
     println!("\nCHI SQUARE TEST STATS");
     for idx in 0..30 {
         let this_sol = top_chi_stats.get(idx).unwrap();
