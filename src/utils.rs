@@ -1,5 +1,3 @@
-//use crate::config::*;
-
 use std::fs::File;
 use std::io::prelude::*;
 
@@ -10,8 +8,10 @@ type SNP = usize;
 type Element = f64;
 type Matrix = (Vec<Element>, usize);
 
+// threshold for comparing f64s
 const FP_EQUALITY_THRESH: f64 = 0.001;
 
+// Get r for a given SNP pair
 pub fn get_r(i: &SNP, j: &SNP, pheromones: &Matrix, current_path: &Vec<SNP>) -> f64 {
     // TODO: if things are slow this memory allocation could easily be
     // removed. leaving for readability now
@@ -32,6 +32,7 @@ pub fn get_r(i: &SNP, j: &SNP, pheromones: &Matrix, current_path: &Vec<SNP>) -> 
     tau_ij / rolling_sum
 }
 
+// get a transfer probability for moving from SNP i to SNP j
 pub fn transfer_prob(
     i: &SNP,
     j: &SNP,
@@ -45,7 +46,7 @@ pub fn transfer_prob(
     let q: f64 = rng.gen();
 
     if q > threshold {
-        prob_out = 1.0
+        prob_out = 1.0;
     } else {
         prob_out = get_r(i, j, pheromones, current_path);
     }
@@ -53,11 +54,15 @@ pub fn transfer_prob(
     prob_out
 }
 
+// get the max from a slice of f64
 pub fn get_max(slice: &[f64]) -> f64 {
     let mut max: &f64 = slice.get(0).unwrap();
-
+    
     for val in slice.iter() {
-        if val > max {
+        // max prob is 1.0, so no use in continuing if it's there
+        if (max-1.0).abs() < FP_EQUALITY_THRESH {
+            break;
+        } else if val > max {
             max = val;
         }
     }
@@ -65,6 +70,7 @@ pub fn get_max(slice: &[f64]) -> f64 {
     max.to_owned()
 }
 
+// expands a single path until the desired dimension
 pub fn expand_path(
     current_path: &mut Vec<SNP>,
     pheromones: &Matrix,
@@ -87,6 +93,7 @@ pub fn add_to_path(
 ) {
     let i: &SNP = current_path.last().unwrap();
 
+    // get the probability of moving to all other SNPs
     let mut probs: (Vec<usize>, Vec<f64>) = (Vec::new(), Vec::new());
 
     for snp in 0..pheromones.1 {
@@ -103,19 +110,22 @@ pub fn add_to_path(
         }
     }
 
+    // get all SNPs at max prob.
     let max_prob = get_max(&probs.1);
 
     let mut snps_at_max: Vec<SNP> = Vec::new();
-
+    
     for (idx, prob) in probs.1.iter().enumerate() {
         if (prob - max_prob).abs() < FP_EQUALITY_THRESH {
             snps_at_max.push(probs.0.get(idx).unwrap().to_owned());
         }
     }
-
+    
+    // select a random SNP from all the SNPs at max probability
     current_path.push(snps_at_max.choose(rng).unwrap().to_owned());
 }
 
+// initialize ants with a random SNP
 pub fn init_ants(num_ants: usize, num_snps: usize, epis_dim: usize) -> Vec<Vec<SNP>> {
     let mut paths_out: Vec<Vec<SNP>> = Vec::with_capacity(epis_dim);
 
@@ -130,53 +140,8 @@ pub fn init_ants(num_ants: usize, num_snps: usize, epis_dim: usize) -> Vec<Vec<S
     paths_out
 }
 
-// TODO I think this is unused, delete later if so
-// A special dot function, multiplies the transpose of the first matrix a by
-// the second matrix b. Avoids a memory allocation
-pub fn tdot(a: &Matrix, b: &Matrix) -> Matrix {
-    let mut m_out: Matrix = (Vec::with_capacity(b.1 * a.0.len() / a.1), b.1);
-
-    if a.0.len() / a.1 != (b.0.len() / b.1) {
-        panic!("utils::tdot - matrices are not conformable!");
-    }
-
-    for a_col in 0..a.1 {
-        for col in 0..b.1 {
-            let mut sum: Element = 0.0;
-
-            let mut a_idx: usize = a_col;
-            //let a_end: usize = a_col;
-
-            let mut b_idx: usize = col;
-
-            for _ in 0..(a.0.len() / a.1) {
-                sum += a.0.get(a_idx).unwrap() * b.0.get(b_idx).unwrap();
-                a_idx += a.1;
-                b_idx += b.1;
-            }
-
-            m_out.0.push(sum);
-        }
-    }
-    m_out
-}
-
-pub fn test_init_pheromones(x: &Matrix) -> Matrix {
-    let mut m_out: Matrix = (Vec::with_capacity(x.1 * x.1), x.1);
-
-    let co_occs: Matrix = tdot(x, x);
-
-    for value in co_occs.0.iter() {
-        if value == &0.0 {
-            m_out.0.push(0.0);
-        } else {
-            m_out.0.push(1.0);
-        }
-    }
-
-    m_out
-}
-
+// initialize all pheromones as 1. this could be changed in the
+// future
 pub fn init_pheromones(num_snps: usize) -> Matrix {
     let mut matrix_out: Matrix = (Vec::new(), num_snps);
 
@@ -189,7 +154,7 @@ pub fn init_pheromones(num_snps: usize) -> Matrix {
     matrix_out
 }
 
-// returns a m x 1 matrix
+// returns a m x 1 matrix for column j
 pub fn get_column(m: &Matrix, j: usize) -> Matrix {
     let mut m_out: Matrix = (Vec::new(), 1);
 
@@ -228,6 +193,7 @@ pub fn append_columns(a: &Matrix, b: &Matrix) -> Matrix {
     m_out
 }
 
+// transposes a matrix
 pub fn transpose(m: &Matrix) -> Matrix {
     let mut m_out: Matrix = (Vec::new(), m.0.len() / m.1);
 
@@ -240,6 +206,7 @@ pub fn transpose(m: &Matrix) -> Matrix {
     m_out
 }
 
+// appends the rows in b to a
 pub fn append_rows(a: &mut Matrix, b: &Matrix) {
     if a.1 != b.1 {
         panic!("utils::append_rows - matrices do not have same dims");
@@ -250,20 +217,23 @@ pub fn append_rows(a: &mut Matrix, b: &Matrix) {
     }
 }
 
+// returns a matrix that is a subset of the columns in m,
+// columns are designated by the indices in the cols Vec
 pub fn column_subset(m: &Matrix, cols: &Vec<usize>) -> Matrix {
     let init_vals: Vec<Element> = get_column(m, cols.first().unwrap().to_owned()).0;
-    let mut m_out_T: Matrix = (init_vals, m.0.len() / m.1);
+    let mut m_out_t: Matrix = (init_vals, m.0.len() / m.1);
 
     for idx in 1..cols.len() {
         let mut this_col = get_column(m, cols.get(idx).unwrap().to_owned());
         // modify dim, transposing the col:
         this_col.1 = this_col.0.len();
-        append_rows(&mut m_out_T, &this_col);
+        append_rows(&mut m_out_t, &this_col);
     }
 
-    transpose(&m_out_T)
+    transpose(&m_out_t)
 }
 
+// loads a dataset formatted like GAMETES 2.0 output
 // final vec<string> in tuple is the header key
 pub fn load_data(fp: &String) -> (Matrix, Matrix, Vec<String>) {
     let mut file = File::open(fp).unwrap();
@@ -283,7 +253,6 @@ pub fn load_data(fp: &String) -> (Matrix, Matrix, Vec<String>) {
                 header = line.split_whitespace().map(|s| s.to_owned()).collect();
             } else {
                 let mut vals: Vec<&str> = line.split_whitespace().collect();
-                //let mut vals: Vec<&str> = line.split(",").collect();
 
                 // check dim
                 if x.1 == 0 {
@@ -308,6 +277,7 @@ pub fn load_data(fp: &String) -> (Matrix, Matrix, Vec<String>) {
     (x, y, header)
 }
 
+// update the pheromone value for a single pheromone
 pub fn update_single_pheromone(
     pheromones: &mut Matrix,
     idx: usize,
@@ -324,6 +294,7 @@ pub fn update_single_pheromone(
     }
 }
 
+// update the pheromone values for a single path
 pub fn update_pheromones(
     pheromones: &mut Matrix,
     path: &Vec<SNP>,
@@ -343,6 +314,11 @@ pub fn update_pheromones(
     }
 }
 
+// a one-hot encoding function that was tested with the logistic regression
+// objective. probably only need two variables for each?
+//
+// leaving for now, NOTE unused
+//
 // not a general function. slapped together only for use with this
 // data
 pub fn naive_one_hot(x: &Matrix) -> Matrix {
@@ -380,6 +356,7 @@ pub fn naive_one_hot(x: &Matrix) -> Matrix {
     m_out
 }
 
+// get the interactive term value for a given x matrix
 pub fn get_interactive_term(x: &Matrix) -> Matrix {
     let mut m_out: Matrix = (Vec::new(), 1);
 
@@ -399,6 +376,7 @@ pub fn get_interactive_term(x: &Matrix) -> Matrix {
     m_out
 }
 
+// build a contingency table for Chi square test
 // NOTE this works only for 3-snp combos
 pub fn build_contingency_table(x: &Matrix, y: &Matrix) -> Matrix {
     let mut contingency_table: Matrix = (
@@ -435,6 +413,7 @@ pub fn build_contingency_table(x: &Matrix, y: &Matrix) -> Matrix {
     contingency_table
 }
 
+// Get the sum of a column
 pub fn col_sum(m: &Matrix, col: usize) -> f64 {
     let mut sum: f64 = 0.0;
 
@@ -445,6 +424,7 @@ pub fn col_sum(m: &Matrix, col: usize) -> f64 {
     sum
 }
 
+// get the sum of a row
 pub fn row_sum(m: &Matrix, row: usize) -> f64 {
     let mut sum: f64 = 0.0;
 
@@ -455,6 +435,7 @@ pub fn row_sum(m: &Matrix, row: usize) -> f64 {
     sum
 }
 
+// get the expected frequency table for Chi square test
 pub fn get_expected_freqs(table: &Matrix) -> Matrix {
     let total: f64 = table.0.iter().sum();
     let mut table_out: Matrix = (Vec::with_capacity(table.0.len()), table.1);
@@ -467,9 +448,6 @@ pub fn get_expected_freqs(table: &Matrix) -> Matrix {
             table_out
                 .0
                 .push((col_sum(table, col_idx) * row_sum(table, row_idx)) / total);
-            //if ((col_sum(table, col_idx) * row_sum(table, row_idx)) / total) == 0.0 {
-            //    print_matrix(table);
-            //}
         }
     }
 

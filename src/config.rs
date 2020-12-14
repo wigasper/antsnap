@@ -5,8 +5,6 @@ use std::path::PathBuf;
 
 use toml::from_str;
 
-// TODO: bools should probably be Strings that are then parsed to allow for
-// fuzzy language usage
 #[derive(Deserialize)]
 pub struct AlgoParams {
     pub init_pheromone_val: Option<f64>,
