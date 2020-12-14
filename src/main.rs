@@ -14,6 +14,7 @@ fn main() {
             Arg::with_name("config")
                 .short("c")
                 .long("config")
+                .default_value("")
                 .long_help("Path to a TOML config file"),
         )
         .get_matches();
