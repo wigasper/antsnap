@@ -33,7 +33,6 @@ pub fn chi_square_test(contingency_table: &Matrix) -> f64 {
     chi_square
 }
 
-
 pub fn train_one_x2(idx: &usize, paths: &Vec<Vec<SNP>>, x: &Matrix, y: &Matrix) -> (usize, f64) {
     let path = paths.get(idx.to_owned()).unwrap();
     let mut subset: Matrix = column_subset(&x, &path);
@@ -42,8 +41,6 @@ pub fn train_one_x2(idx: &usize, paths: &Vec<Vec<SNP>>, x: &Matrix, y: &Matrix) 
 
     (idx.to_owned(), test_stat)
 }
-
-
 
 pub fn train_one(idx: &usize, paths: &Vec<Vec<SNP>>, x: &Matrix, y: &Matrix) -> (usize, f64) {
     let path = paths.get(idx.to_owned()).unwrap();
@@ -142,13 +139,13 @@ pub fn aco(params: &Config) {
     }
 
     top_losses.sort_by(|a, b| b.2.partial_cmp(&a.2).unwrap());
-
+/*
     println!("LOSSES");
     for idx in 0..30 {
         let this_sol = top_losses.get(idx).unwrap();
         println!("Path: {:?}\tLoss: {}", this_sol.0, this_sol.2);
     }
-
+*/
     let mut top_chi_stats: Vec<(Vec<String>, f64)> = Vec::new();
 
     for solution in top_losses.iter() {

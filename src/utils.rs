@@ -55,7 +55,7 @@ pub fn transfer_prob(
 
 pub fn get_max(slice: &[f64]) -> f64 {
     let mut max: &f64 = slice.get(0).unwrap();
-    
+
     // TODO nevermind early-stopping logic is fine here,
     // redo
     for val in slice.iter() {
