@@ -4,7 +4,7 @@ use clap::{App, Arg};
 use antsnap::algo::*;
 use antsnap::config::*;
 
-use std::path::{Path, PathBuf};
+use std::path::{PathBuf};
 
 fn main() {
     let matches = App::new("antsnap")
@@ -14,8 +14,6 @@ fn main() {
             Arg::with_name("config")
                 .short("c")
                 .long("config")
-                // TODO: FIX THIS
-                .default_value("")
                 .long_help("Path to a TOML config file"),
         )
         .get_matches();

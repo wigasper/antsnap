@@ -18,6 +18,7 @@ const PROPORTION_TO_SELECT: f64 = 0.05;
 // number of solutions to retain per round
 const N_SOLUTIONS_TO_RETAIN: usize = 10;
 
+// calculates the Chi-square test stat for a contingency table
 pub fn chi_square_test(contingency_table: &Matrix) -> f64 {
     let expected_freqs: Matrix = get_expected_freqs(contingency_table);
 
@@ -33,15 +34,17 @@ pub fn chi_square_test(contingency_table: &Matrix) -> f64 {
     chi_square
 }
 
+// Function used to calculate the Chi square test stat for a single path
 pub fn train_one_x2(idx: &usize, paths: &Vec<Vec<SNP>>, x: &Matrix, y: &Matrix) -> (usize, f64) {
     let path = paths.get(idx.to_owned()).unwrap();
-    let mut subset: Matrix = column_subset(&x, &path);
+    let subset: Matrix = column_subset(&x, &path);
     let contingency_table: Matrix = build_contingency_table(&subset, &y);
     let test_stat: f64 = chi_square_test(&contingency_table);
 
     (idx.to_owned(), test_stat)
 }
 
+// Trains a logistic regression model for a single path
 pub fn train_one(idx: &usize, paths: &Vec<Vec<SNP>>, x: &Matrix, y: &Matrix) -> (usize, f64) {
     let path = paths.get(idx.to_owned()).unwrap();
     let mut subset: Matrix = column_subset(&x, &path);
@@ -56,11 +59,14 @@ pub fn train_one(idx: &usize, paths: &Vec<Vec<SNP>>, x: &Matrix, y: &Matrix) -> 
     (idx.to_owned(), loss)
 }
 
+// Ant colony optimization algorithm routine
 pub fn aco(params: &Config) {
+    // load data
     let (x, y, header): (Matrix, Matrix, Vec<String>) = load_data(&params.algo.data_fp);
 
     let num_snps = x.1;
     //////
+    // Load parameters
     // TODO move all this????
     let mut num_ants = 2000;
     if let Some(k) = &params.algo.num_ants {
@@ -90,6 +96,8 @@ pub fn aco(params: &Config) {
     let num_iters: usize = 50;
 
     // retain the top solutions
+    // NOTE: this vec is named with the intention of using logistic regression
+    // as the objective, but is confusing when using Chi square test
     let mut top_losses: Vec<(Vec<String>, Vec<SNP>, f64)> = Vec::new();
 
     // init pheromones matrix
@@ -102,7 +110,10 @@ pub fn aco(params: &Config) {
         paths.par_iter_mut().for_each(|p| {
             expand_path(p, &pheromones, epis_dim, threshold);
         });
-
+        
+        // A vec of indices for the paths, used later for mapping losses,
+        // could be done without this though if par_iter guarantees 
+        // order (I think it does?)
         let path_indices: Vec<usize> = (0..paths.len()).into_iter().collect();
 
         let par_iter = path_indices
@@ -139,13 +150,9 @@ pub fn aco(params: &Config) {
     }
 
     top_losses.sort_by(|a, b| b.2.partial_cmp(&a.2).unwrap());
-/*
-    println!("LOSSES");
-    for idx in 0..30 {
-        let this_sol = top_losses.get(idx).unwrap();
-        println!("Path: {:?}\tLoss: {}", this_sol.0, this_sol.2);
-    }
-*/
+    
+    // get the top Chi square test stats, this is unnecessary though 
+    // if using Chi square test as the objective function
     let mut top_chi_stats: Vec<(Vec<String>, f64)> = Vec::new();
 
     for solution in top_losses.iter() {
@@ -165,6 +172,8 @@ pub fn aco(params: &Config) {
         println!("Path: {:?}\tX2 test stat: {}", this_sol.0, this_sol.1);
     }
 
+    // Check to see what the Chi square test stat is of the true 
+    // solution (make sure GAMETES modeling is working correctly
     let true_sol: Vec<SNP> = vec![x.1 - 3, x.1 - 2, x.1 - 1];
     let mut col_subset: Matrix = column_subset(&x, &true_sol);
     let contingency_table: Matrix = build_contingency_table(&col_subset, &y);
