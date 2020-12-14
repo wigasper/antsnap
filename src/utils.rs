@@ -57,10 +57,10 @@ pub fn transfer_prob(
 // get the max from a slice of f64
 pub fn get_max(slice: &[f64]) -> f64 {
     let mut max: &f64 = slice.get(0).unwrap();
-    
+
     for val in slice.iter() {
         // max prob is 1.0, so no use in continuing if it's there
-        if (max-1.0).abs() < FP_EQUALITY_THRESH {
+        if (max - 1.0).abs() < FP_EQUALITY_THRESH {
             break;
         } else if val > max {
             max = val;
@@ -114,13 +114,13 @@ pub fn add_to_path(
     let max_prob = get_max(&probs.1);
 
     let mut snps_at_max: Vec<SNP> = Vec::new();
-    
+
     for (idx, prob) in probs.1.iter().enumerate() {
         if (prob - max_prob).abs() < FP_EQUALITY_THRESH {
             snps_at_max.push(probs.0.get(idx).unwrap().to_owned());
         }
     }
-    
+
     // select a random SNP from all the SNPs at max probability
     current_path.push(snps_at_max.choose(rng).unwrap().to_owned());
 }

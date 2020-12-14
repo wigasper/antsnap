@@ -110,9 +110,9 @@ pub fn aco(params: &Config) {
         paths.par_iter_mut().for_each(|p| {
             expand_path(p, &pheromones, epis_dim, threshold);
         });
-        
+
         // A vec of indices for the paths, used later for mapping losses,
-        // could be done without this though if par_iter guarantees 
+        // could be done without this though if par_iter guarantees
         // order (I think it does?)
         let path_indices: Vec<usize> = (0..paths.len()).into_iter().collect();
 
@@ -150,8 +150,8 @@ pub fn aco(params: &Config) {
     }
 
     top_losses.sort_by(|a, b| b.2.partial_cmp(&a.2).unwrap());
-    
-    // get the top Chi square test stats, this is unnecessary though 
+
+    // get the top Chi square test stats, this is unnecessary though
     // if using Chi square test as the objective function
     let mut top_chi_stats: Vec<(Vec<String>, f64)> = Vec::new();
 
@@ -172,7 +172,7 @@ pub fn aco(params: &Config) {
         println!("Path: {:?}\tX2 test stat: {}", this_sol.0, this_sol.1);
     }
 
-    // Check to see what the Chi square test stat is of the true 
+    // Check to see what the Chi square test stat is of the true
     // solution (make sure GAMETES modeling is working correctly
     let true_sol: Vec<SNP> = vec![x.1 - 3, x.1 - 2, x.1 - 1];
     let mut col_subset: Matrix = column_subset(&x, &true_sol);

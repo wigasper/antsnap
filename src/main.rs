@@ -4,7 +4,7 @@ use clap::{App, Arg};
 use antsnap::algo::*;
 use antsnap::config::*;
 
-use std::path::{PathBuf};
+use std::path::PathBuf;
 
 fn main() {
     let matches = App::new("antsnap")
