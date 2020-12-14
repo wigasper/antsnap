@@ -5,7 +5,7 @@ init_pheromone_val = 1.0
 # t_0 may affect convergence speed, higher = less likely that
 # an ant will move to an SNP based on random chance
 # random discovery can be helpful for finding new paths
-t_0 = 0.2
+t_0 = 0.90
 
 # evap_coeff affects pheromone updates
 # for a bad solution, pher = (1 - evap_coeff) * val
@@ -13,9 +13,9 @@ t_0 = 0.2
 evap_coeff = 0.9
 
 epis_dim = 3
-num_ants = 4000
-#num_ants = 4000
-max_iters = 30
+num_ants = 3000
+
+max_iters = 40
 
 # lambda affects pheromone boost given to "good" solutions
 lambda = 2

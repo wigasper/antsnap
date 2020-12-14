@@ -93,7 +93,10 @@ pub fn aco(params: &Config) {
         lambda = lambda_in.to_owned();
     }
 
-    let num_iters: usize = 50;
+    let mut num_iters: usize = 50;
+    if let Some(num_iters_in) = &params.algo.max_iters {
+        num_iters = num_iters_in.to_owned();
+    }
 
     // retain the top solutions
     // NOTE: this vec is named with the intention of using logistic regression
