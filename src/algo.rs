@@ -183,11 +183,11 @@ pub fn aco(params: &Config) {
     let test_stat: f64 = chi_square_test(&contingency_table);
     println!("True sol test stat: {}", test_stat);
 
-    let int_term: Matrix = get_interactive_term(&col_subset);
+//    let int_term: Matrix = get_interactive_term(&col_subset);
 
-    col_subset = append_columns(&col_subset, &int_term);
+//    col_subset = append_columns(&col_subset, &int_term);
 
-    let mut model = LogRegressor::new();
-    let loss = model.train(&col_subset, &y, LR_N_ITERS, LR_LEARN_RATE);
-    println!("True sol loss: {}", loss);
+//    let mut model = LogRegressor::new();
+//    let loss = model.train(&col_subset, &y, LR_N_ITERS, LR_LEARN_RATE);
+//    println!("True sol loss: {}", loss);
 }
