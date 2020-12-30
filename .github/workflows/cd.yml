@@ -60,11 +60,10 @@ jobs:
             shasum -a 256 $RELEASE_NAME.tar.gz > $RELEASE_NAME.sha256
           fi
       - name: Release artifacts
-		uses: softprops/action-gh-release@v1
-		with:
+        uses: softprops/action-gh-release@v1
+        with:
           files: |
             target/${{ matrix.target }}/release/spotify-tui-${{ matrix.artifact_prefix }}.tar.gz
             target/${{ matrix.target }}/release/spotify-tui-${{ matrix.artifact_prefix }}.sha256
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-		 
