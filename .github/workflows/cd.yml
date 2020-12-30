@@ -6,7 +6,7 @@ on:
       - "v*.*.*"
 
 # this is taken from github.com/Rigellute/spotify-tui
-# and modified
+# and modified. 
 
 jobs:
   publish:    
