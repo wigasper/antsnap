@@ -12,8 +12,8 @@ jobs:
   publish:    
     name: Publishing for ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
-	strategy:
-	  matrix:
+    strategy:
+      matrix:
         os: [macos-latest, ubuntu-latest, windows-latest]
         rust: [stable]
         include:
